@@ -1,4 +1,4 @@
-// Date:2024/1/24
+﻿// Date:2024/1/24
 // Author:妖怪鱼
 // Introduction:自定义shell
 /// 重要的一点，普通空格在ascii表中是32(space),而不是\0对应的0
@@ -95,6 +95,7 @@ void CommandCheck(char* line)
                 while (isspace(*pos)) {
                     pos++;
                 }
+                redirType = APPEND_REDIR;
                 redirFile = pos;
                 //                redirType = er
                 break;
@@ -230,7 +231,7 @@ void Excute(char* strs[])
         case NONE_REDIR:
             break;
         case INPUT_REDIR: {
-            int fd = open(redirFile, O_RDONLY);
+            int fd = open(redirFile, O_RDONLY,0666);
             if (fd < 0) {
                 perror("open");
                 exit(errno);

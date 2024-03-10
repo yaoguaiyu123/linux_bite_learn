@@ -51,3 +51,16 @@
 ![图片](image/pic01.png)
 
 -------
+### linux13
+**文件fd**
+```
+对于每一个文件，操作系统都创建了一个struct file
+struct file{
+    int type;
+    int status;
+    int (*readp)();   //函数指针
+    int (*writep)();
+}
+```
+
+-------

@@ -1,6 +1,8 @@
 // Date:2024/1/24
 // Author:妖怪鱼
 // Introduction:自定义shell
+/// 重要的一点，普通空格在ascii表中是32(space),而不是\0对应的0
+/// c语言字符串是以\0结尾，而不是以空格结尾
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -8,6 +10,8 @@
 #include <string.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <assert.h>
+#include <fcntl.h>
 // 定义 ANSI 转义码,改变printf的文字颜色
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -18,6 +22,13 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 #define SIZE 1024
+
+#define NONE_REDIR 0
+#define INPUT_REDIR 1
+#define OUTPUT_REDIR 2
+#define APPEND_REDIR 3
+int redirType = NONE_REDIR;
+char* redirFile = NULL;
 
 char pwd[SIZE];
 char env[3][SIZE];
@@ -68,6 +79,48 @@ void test01() {
     printf(ANSI_COLOR_CYAN "This is cyan text" ANSI_COLOR_RESET "\n");
 }
 
+// 面对输出重定向的情况进行字符串分割
+void CommandCheck(char* line)
+{
+    assert(line);
+    char* pos = line;
+    //*pos一直到\0结束循环，如果遇到重定向符号就提前退出循环
+    while (*pos) {
+        if (*pos == '>') {
+            if (*(pos + 1) == '>') {
+                //>>表示追加到文件末尾
+                *pos = '\0';
+                *(pos + 1) = '\0';
+                pos += 2;
+                while (isspace(*pos)) {
+                    pos++;
+                }
+                redirFile = pos;
+                //                redirType = er
+                break;
+
+            } else {
+                *pos = '\0';
+                pos++;
+                while (isspace(*pos)) {
+                    pos++;
+                }
+                redirFile = pos;
+                redirType = OUTPUT_REDIR;
+                break;
+            }
+        } else if (*pos == '<') {
+            *pos = '\0';
+            pos++;
+            while(isspace(*pos)) pos++;
+            redirFile = pos;
+            redirType=INPUT_REDIR;
+            break;
+        }
+        ++pos;
+    }
+}
+
 //交互函数
 int Interactive(char out[],int size){
     printf(ANSI_COLOR_RED "[" ANSI_COLOR_CYAN "%s@%s" ANSI_COLOR_YELLOW " %s" ANSI_COLOR_RED
@@ -75,6 +128,9 @@ int Interactive(char out[],int size){
         UserName(), HostName(), CurrentWorker());
     fgets(out, size, stdin); // 获取整行字符串(包括\n)
     out[strlen(out) - 1] = '\0'; // 去掉字符串末尾的\n
+
+    CommandCheck(out);
+
     return strlen(out);
 }
 
@@ -101,6 +157,10 @@ void Split(char* line, char* strs[])
 int BuildingCmd(char* strs[])
 {
     int ret = 0;
+    // 判断是不是有重定向
+    if (redirType != NONE_REDIR) {
+        return ret;
+    }
     // 处理内建命令
     if (strcmp(strs[0], "cd") == 0) {
         ret = 1;
@@ -166,6 +226,40 @@ void Excute(char* strs[])
         //        strcpy(tmp, strs[0]);
         //        char tmp_1[SIZE] = "/usr/bin/";
         //        strcat(tmp_1, tmp);
+        switch (redirType) {
+        case NONE_REDIR:
+            break;
+        case INPUT_REDIR: {
+            int fd = open(redirFile, O_RDONLY);
+            if (fd < 0) {
+                perror("open");
+                exit(errno);
+            }
+            // 重定向文件已经成功打开
+            dup2(fd, 0);
+
+        } break;
+        case APPEND_REDIR:
+        case OUTPUT_REDIR: {
+            int flags = O_WRONLY | O_CREAT;
+            if (redirType == APPEND_REDIR) {
+                flags |= O_APPEND;
+            } else {
+                flags |= O_TRUNC;
+            }
+            int fd = open(redirFile, flags);
+            if (fd < 0) {
+                perror("open");
+                exit(errno);
+            }
+            dup2(fd, 1);
+        }
+            break;
+        default:
+            printf("发生错误!!!!\n");
+            break;
+        }
+
         execvp(strs[0], strs);
         exit(1);
     }
@@ -179,11 +273,15 @@ void Excute(char* strs[])
     }
 }
 
+
+
 int main()
 {
     // 输出提示符并获取用户输入命令ls -al
     printf(ANSI_COLOR_GREEN "欢迎来到wby自定义shell----ddsh\n");
     while (true) {
+        redirType = NONE_REDIR;
+        redirFile = NULL;
         char commandline[SIZE]; // 输入缓冲区
         int n = Interactive(commandline, sizeof(commandline));
         if (!n) {

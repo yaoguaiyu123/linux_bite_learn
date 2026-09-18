@@ -5,6 +5,12 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <stdlib.h>
+
+// 这个是 wait() 的头文件，不需要添加也没问题，属于是隐式函数声明
+// GCC 14开始默认把隐式函数声明提高为错误，官方迁移文档也说明：应该包含正确头文件，
+// 然后编译器会进一步检查参数类型和数量
+// #include <sys/wait.h>
+
 // 1.进程排队
 // task_struct中有一个listNode的双向链表节点的成员,通过这些节点形成一个双向链表来维护一个队列
 // 假设listNode类型的成员变量名为n, 则可以通过 &n - &((task_struct*)0 -> n) 来得到该task_struct对象的地址
@@ -118,7 +124,11 @@ void test07()
 void test08()
 {
     // wait函数进阶使用
-    // 如果父进程没有任何子进程，wait的返回值
+    // 如果父进程没有任何子进程，wait的返回值是 -1
+    
+    // wait()并不是无条件阻塞。它只有在：
+    // 父进程当前存在子进程，但子进程还没有退出时才会阻塞   
+    // 如果父进程根本没有子进程，已经没有任何对象可以等待，wait()会立即返回-1
     pid_t i = wait();
     printf("i = %d\n", i); //-1
 }
@@ -161,10 +171,10 @@ int main()
     //    test03();
     //    test04();
     //    test05();
-    //    test06();
+    // test06();
     //    test07();
-    //    test08();
-    test09();
+       test08();
+    // test09();
     return 0;
 }
 

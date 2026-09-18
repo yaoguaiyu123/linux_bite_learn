@@ -1,3 +1,4 @@
+
 #include <arpa/inet.h>
 #include <cstring>
 #include <iostream>
@@ -6,7 +7,7 @@
 
 int main()
 {
-    // 1. 创建TCP socket，返回文件描述符
+    // 1. 创建TCP socket，返回文件描述符, SOCK_STREAM 表示 TCP
     int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_fd == -1) {
         perror("socket");

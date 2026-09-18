@@ -108,9 +108,18 @@ void test06()
     printf("我是父进程,pid = %d,ppid = %d\n", getpid(), getppid());
     int status = 0;
     //status用于存储子进程的终止状态信息,分为退出码，core dump标志，退出信号等等多个部分
-    pid_t rid = waitpid(id, &status,0); // 父进程阻塞等待指定的子进程,这里的0参数表示阻塞等待
+    pid_t rid = waitpid(id, &status,0); // 父进程阻塞等待指定的子进程,这里的 0 参数表示阻塞等待
     if (rid > 0) {
         printf("子进程%d退出,并得到父进程的等待,子进程的退出状态为:%d\n", rid, status);   //status = 256
+
+        // 使用宏来解析status
+        if (WIFEXITED(status)) {
+            printf("正常退出，退出码：%d\n", WEXITSTATUS(status));
+        }
+        if (WIFSIGNALED(status)) {
+            printf("被信号终止，信号：%d\n", WTERMSIG(status));
+        }
+
     }
 
 }

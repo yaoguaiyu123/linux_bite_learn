@@ -8,6 +8,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <sys/wait.h>
 
 // 进程退出码和他退出信号会被写入到task_struct中
 // 读取子进程退出信息本质是读取内核数据
@@ -97,16 +98,19 @@ void test02()
     initTask();
     // 使用非阻塞等待实现多次轮询访问
     while (true) {
-        pid_t rid = waitpid(id, &status, WNOHANG); // 父进程非阻塞等待
+        pid_t rid = waitpid(id, &status, WNOHANG); // WNOHANG表示父进程非阻塞等待
         if (rid > 0) {
+            // 子进程退出
             printf("父进程等待到子进程%d退出,exit signo = %d,exit code = %d\n", rid, status & 0x7F, (status >> 8) & 0xFF);
             break;
         } else if (rid == 0) {
+            // 子进程没有退出
             printf("------------当前没有子进程退出----------------\n");
             printf("------------开始执行父进程的任务--------------\n");
             excuteTask();
             printf("------------结束执行父进程的任务--------------\n");
         } else {
+            // 发生错误
             perror("waitpid");
             break;
         }
@@ -216,7 +220,7 @@ void test09()
     }
 }
 
-// execle,excve,execvpe等等多了一个'e',这些函数参数多了一个char* const evnp[]的参数
+// execle,execve,execvpe等等多了一个'e',这些函数参数多了一个char* const evnp[]的参数
 // 可以自定义环境变量表来给子进程重置环境变量
 void test10()
 {
@@ -243,13 +247,13 @@ int main()
 {
     //    test01();
     //    test02();
-    //    test03();
+    test03();
     //    test04();
     //    test05();
     //    test06();
     //    test07();
     //    test08();
     //    test09();
-    test10();
+    // test10();
     return 0;
 }

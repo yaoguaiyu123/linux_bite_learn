@@ -10,6 +10,11 @@
 // 文件描述符的分配规则：在files_struct数组当中，找到当前没有被使用的
 // 最小的一个下标，作为新的文件描述符。
 // 重定向的本质:文件描述符对应的file*发生改变
+
+// 默认情况下的文件描述符:
+// 0	标准输入stdin
+// 1	标准输出stdout
+// 2	标准错误stderr
 void test01()
 {
     int fd = open("myfile01.txt", O_CREAT | O_RDWR | O_TRUNC, 0666);
@@ -25,7 +30,7 @@ void test01()
         return 1;
     }
     printf("fd_1 = %d\n", fd_1);
-    printf("hello world"); // 输出重定向
+    printf("hello world"); // 输出重定向到 myfile02.txt
     close(1);
     close(fd);
 }

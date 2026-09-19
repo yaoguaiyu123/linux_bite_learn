@@ -6,7 +6,7 @@
 
 int main()
 {
-    // 创建UDP socket
+    // 创建UDP socket, SOCK_DGRAM是表示 UDP 意思
     int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (socket_fd == -1) {
         perror("socket");
@@ -32,11 +32,11 @@ int main()
     sockaddr_in client_addr{};
     socklen_t client_addr_len = sizeof(client_addr);
 
-    ssize_t received = recvfrom(
+    ssize_t received = recvfrom(    // received表示实际接收的字节数
         socket_fd,
         buffer,
         sizeof(buffer) - 1,
-        0,
+        0,      // 0，规定了是阻塞等待
         reinterpret_cast<sockaddr *>(&client_addr),
         &client_addr_len
     );
@@ -49,8 +49,8 @@ int main()
 
     buffer[received] = '\0';
 
-    char client_ip[INET_ADDRSTRLEN]{};
-    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
+    char client_ip[INET_ADDRSTRLEN]{};      // INET_ADDRSTRLEN表示IPV4地址的最大长度是16
+    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));  // 转换为可读的主机字节序
 
     std::cout << "收到客户端 " << client_ip << ':'
               << ntohs(client_addr.sin_port)
@@ -63,7 +63,7 @@ int main()
             socket_fd,
             reply,
             std::strlen(reply),
-            0,
+            0,   // 0是阻塞发送，还有非阻塞发送：缓冲区满了不等待，直接返回错误
             reinterpret_cast<sockaddr *>(&client_addr),
             client_addr_len
         ) == -1) {

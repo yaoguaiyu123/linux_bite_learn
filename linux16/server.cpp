@@ -14,15 +14,15 @@ int main()
         return 1;
     }
 
-    // 允许程序关闭后快速重新绑定8080端口
+    // 允许程序关闭后快速重新绑定8080端口，本质是告诉内核"我就是要重新绑定该端口"
     int reuse = 1;
     setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 
     // 2. 准备服务端地址：127.0.0.1:8080
     sockaddr_in server_addr{};
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(8080);
-    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
+    server_addr.sin_family = AF_INET;    // AF_INET是IPV4，而AF_INET6是IPV6
+    server_addr.sin_port = htons(8080);   // htons 的作用是将端口号从主机字节序转换为网络字节序（大端）
+    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr); // inet_pton 把字符串形式的 IP 地址转成二进制，存进结构体
 
     // 3. 把socket绑定到IP和端口
     if (bind(listen_fd, reinterpret_cast<sockaddr *>(&server_addr), sizeof(server_addr)) == -1) {
@@ -32,6 +32,7 @@ int main()
     }
 
     // 4. 进入监听状态
+    // 这里的 5 是等待连接队列的最大长度，即还没被 accept 接走的连接，最多能排队多少个
     if (listen(listen_fd, 5) == -1) {
         perror("listen");
         close(listen_fd);
@@ -42,6 +43,12 @@ int main()
 
     // 5. 等待客户端连接
     sockaddr_in client_addr{};
+    // 阻塞等待，没有连接来就一直在这等待
+    // accept 内部：
+    //   1. 从等待队列里取一个已完成三次握手的连接
+    //   2. 为这个连接创建一个新的文件描述符 client_fd
+    //   3. 填充客户端地址信息到 client_addr
+    //   4. 返回 client_fd
     socklen_t client_addr_len = sizeof(client_addr);
     int client_fd = accept(listen_fd, reinterpret_cast<sockaddr *>(&client_addr), &client_addr_len);
     if (client_fd == -1) {
